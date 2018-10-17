@@ -77,7 +77,7 @@ namespace pistis {
     private:
       int flags_;
 
-      FileOpenOptions(int f): flags_(f) { }
+      explicit FileOpenOptions(int f): flags_(f) { }
     };
 
     inline std::ostream& operator<<(std::ostream& out, FileOpenOptions o) {
