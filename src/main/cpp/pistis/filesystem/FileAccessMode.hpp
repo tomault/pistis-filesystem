@@ -15,6 +15,14 @@ namespace pistis {
     public:
       int flags() const;
       const std::string& name() const;
+
+      bool operator==(FileAccessMode other) const {
+	return ordinal_ == other.ordinal_;
+      }
+
+      bool operator!=(FileAccessMode other) const {
+	return ordinal_ != other.ordinal_;
+      }
 	
     private:
       int ordinal_;

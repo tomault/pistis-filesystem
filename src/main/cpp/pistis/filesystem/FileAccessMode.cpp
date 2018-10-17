@@ -9,7 +9,8 @@ namespace {
 
   static const int FLAGS[] = { O_RDONLY, O_WRONLY, O_RDWR };
   static const std::string NAMES[]{
-      std::string("O_RDONLY"), std::string("O_WRONLY"), std::string("O_RDWR")
+      std::string("READ_ONLY"), std::string("WRITE_ONLY"),
+      std::string("READ_WRITE")
   };
 
 }

@@ -54,6 +54,7 @@ namespace pistis {
       FileOpenOptions operator|(FileOpenOptions o) const {
 	return FileOpenOptions(flags() | o.flags());
       }
+      
       FileOpenOptions& operator|=(FileOpenOptions o) {
 	flags_ |= o.flags();
 	return *this;
