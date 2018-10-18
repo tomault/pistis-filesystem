@@ -64,6 +64,9 @@ namespace pistis {
       /** @brief Others have read and execute permissions */
       static const FilePermissions OTHER_RE;
 
+      /** @brief Others have read, write and execute permissions */
+      static const FilePermissions OTHER_ALL;
+
       /** @brief User, group and others have read permission */
       static const FilePermissions ALL_READ;
 
@@ -84,9 +87,6 @@ namespace pistis {
        */
       static const FilePermissions ALL_RWX;
       
-      /** @brief Others have read, write and execute permissions */
-      static const FilePermissions OTHER_ALL;
-
       /** @brief File executes with priviliges of user who owns it
        *
        *  Has no effect if set on a directory.

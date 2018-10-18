@@ -92,7 +92,8 @@ namespace pistis {
       }
 
       static File open(const std::string& name, FileCreationMode creation,
-		       FileAccessMode access, FileOpenOptions options,
+		       FileAccessMode access,
+		       FileOpenOptions options = FileOpenOptions::NONE,
 		       FilePermissions permissions = FilePermissions::ALL_RW);
       static void unlink(const std::string& name);
 
