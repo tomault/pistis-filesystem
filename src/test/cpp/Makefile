@@ -60,6 +60,11 @@ compile: dirs ${OBJ_FILES}
 link: compile ${TEST_BIN}
 
 test: link
+	[ -d ${TARGET_DIR}/test/resources ] || mkdir ${TARGET_DIR}/test/resources
+	[ -d ${TARGET_DIR}/test/tmp ] || mkdir ${TARGET_DIR}/test/tmp
+	rm -rf ${TARGET_DIR}/test/resources/*
+	rm -rf ${TARGET_DIR}/test/tmp/*
+	cp -r ${MODULE_DIR}/src/test/resources/* ${TARGET_DIR}/test/resources
 	cd ${TARGET_DIR}/test/bin
 	LD_LIBRARY_PATH=${TARGET_DIR}/lib:${REPO_LIB_DIR}:/usr/local/lib:${LD_LIBRARY_PATH} ${TEST_BIN}
 

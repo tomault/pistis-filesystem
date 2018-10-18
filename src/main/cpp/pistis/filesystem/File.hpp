@@ -84,6 +84,17 @@ namespace pistis {
 	}
       }
 
+      File& operator=(const File& other) = delete;
+      File& operator=(File&& other) {
+	if (this != &other) {
+	  close();
+	  fd_ = other.fd_;
+	  other.fd_ = -1;
+	  name_ = std::move(other.name_);
+	  buffer_ = std::move(other.buffer_);
+	}
+	return *this;
+      }
       static File open(const std::string& name,
 		       FileAccessMode access = FileAccessMode::READ_WRITE,
 		       FileOpenOptions options = FileOpenOptions::NONE) {
@@ -120,8 +131,8 @@ namespace pistis {
 	
       private:
 	std::unique_ptr<uint8_t[]> data_;
-	const size_t initialSize_;
-	const size_t maxSize_;
+	size_t initialSize_;
+	size_t maxSize_;
 	size_t size_;
 	size_t current_;
 	size_t end_;
@@ -132,7 +143,7 @@ namespace pistis {
 	
     private:
       int fd_;
-      const std::string name_;
+      std::string name_;
       Buffer buffer_;
 
       size_t read_(uint8_t* buffer, size_t n);

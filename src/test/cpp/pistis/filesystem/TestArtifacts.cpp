@@ -46,7 +46,7 @@ namespace {
       return stripTrailingPathSeparator(std::string(scratchDirEnvVar));
     } else {
       std::string base = stripLastComponent(getExecutableDir());
-      return base + "/resources";
+      return base + "/tmp";
     }
   }
 }
@@ -86,4 +86,20 @@ std::string pistis::filesystem::testing::getResourcePath(
 std::string pistis::filesystem::testing::getScratchDir() {
   static const std::string SCRATCH_DIR = computeScratchDir();
   return SCRATCH_DIR;
+}
+
+std::string pistis::filesystem::testing::getScratchFile(
+    const std::string& filename
+) {
+  if (filename.empty()) {
+    return getScratchDir();
+  } else if (filename[0] == '/') {
+    return filename;
+  } else {
+    return getScratchDir() + "/" + filename;
+  }
+}
+
+void pistis::filesystem::testing::removeFile(const std::string& filename) {
+  ::unlink(getScratchFile(filename).c_str());
 }
