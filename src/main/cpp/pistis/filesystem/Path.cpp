@@ -39,7 +39,7 @@ namespace {
   void readStatistics(const std::string& path, struct stat& statistics) {
     if (stat(path.c_str(), &statistics) < 0) {
       throw IOError::fromSystemError("Call to stat(\"" + path +
-				     "\") failed - {#ERR}", errno,
+				     "\") failed: #ERR#", errno,
 				     PISTIS_EX_HERE);
     }
   }
@@ -52,7 +52,7 @@ namespace {
       return false;
     } else {
       throw IOError::fromSystemError("Call to stat(\"" + path +
-				     "\") failed - {#ERR}", errno,
+				     "\") failed: #ERR#", errno,
 				     PISTIS_EX_HERE);
     }
   }
