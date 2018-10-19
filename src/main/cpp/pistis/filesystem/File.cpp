@@ -212,6 +212,7 @@ size_t File::seek(FileOrigin origin, ssize_t offset) {
     throw IOError::fromSystemError(createErrorMessage_("seeking in"),
 				   PISTIS_EX_HERE);
   }
+  buffer_.clear();
   return pos;
 }
 
@@ -220,6 +221,7 @@ void File::truncate(size_t size) {
     throw IOError::fromSystemError(createErrorMessage_("truncating"),
 				   PISTIS_EX_HERE);
   }
+  buffer_.clear();
 }
 
 void File::close() noexcept {
@@ -236,7 +238,8 @@ std::string File::readLine() {
 
 File File::open(const std::string& name, FileCreationMode creation,
 		FileAccessMode access, FileOpenOptions options,
-		FilePermissions permissions) {
+		FilePermissions permissions, size_t initialBufferSize,
+		size_t maxBufferSize) {
   int fd = ::open(name.c_str(),
 		  creation.flags() | access.flags() | options.flags(),
 		  permissions.flags());
@@ -244,7 +247,7 @@ File File::open(const std::string& name, FileCreationMode creation,
     throw IOError::fromSystemError("Error opening " + name + ": #ERR#",
 				   PISTIS_EX_HERE);
   }
-  return File(fd, name);
+  return File(fd, name, initialBufferSize, maxBufferSize);
 }
 
 void File::unlink(const std::string& name) {

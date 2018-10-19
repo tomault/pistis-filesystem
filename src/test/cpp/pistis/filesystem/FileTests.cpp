@@ -4,6 +4,8 @@
 #include "TestArtifacts.hpp"
 
 #include <gtest/gtest.h>
+
+#include <iostream>
 #include <memory>
 #include <sstream>
 
@@ -15,7 +17,7 @@ using namespace pistis::filesystem;
 namespace pt = pistis::filesystem::testing;
 
 namespace {
-  uint64_t sizeOfFile(const std::string& path) {
+  static uint64_t sizeOfFile(const std::string& path) {
     struct stat statistics;
     if (stat(path.c_str(), &statistics) < 0) {
       std::string msg = "Call to stat(" + path + ") failed: #ERR#";
@@ -24,11 +26,18 @@ namespace {
     return statistics.st_size;
   }
 
-  std::string TEST_FILE_1_CONTENT{
-    "The text in this file is used by unit tests to verify the File "
-     "implementation.\n"
-     "This is the second line.\n"
-     "This is the third line.\n"
+  static const std::string TEST_FILE_1_CONTENT{
+      "The text in this file is used by unit tests to verify the File "
+      "implementation.\n"
+      "This is the second line.\n"
+      "This is the third line.\n"
+  };
+
+  static const std::vector<std::string> TEST_FILE_1_LINES{
+      "The text in this file is used by unit tests to verify the File "
+      "implementation.\n",
+      "This is the second line.\n",
+      "This is the third line.\n"
   };
 }
 
@@ -162,6 +171,55 @@ TEST(FileTests, SeekFromEnd) {
 	    std::string(buffer.get(), buffer.get() + nRead));
 }
 
+TEST(FileTests, Truncate) {
+  std::string fileName = pt::getScratchFile("temp_file_1.txt");
+  pt::removeFile(fileName);
 
+  File file = File::open(fileName, FileCreationMode::CREATE_ONLY,
+			 FileAccessMode::WRITE_ONLY, FileOpenOptions::NONE,
+			 FilePermissions::USER_RW);
+  size_t nWritten = file.write(TEST_FILE_1_CONTENT.c_str(),
+			       TEST_FILE_1_CONTENT.size());
+  file.close();
+  
+  EXPECT_EQ(TEST_FILE_1_CONTENT.size(), nWritten);
 
+  file = File::open(fileName, FileCreationMode::OPEN_ONLY,
+		    FileAccessMode::READ_WRITE);
+  file.truncate(16);
+
+  std::unique_ptr<char[]> buffer(new char[nWritten]);
+  size_t nRead = file.read(buffer.get(), nWritten);
+
+  EXPECT_EQ(nRead, 16);
+  EXPECT_EQ(TEST_FILE_1_CONTENT.substr(0, 16),
+	    std::string(buffer.get(), buffer.get() + nRead));
+
+  file.close();
+  pt::removeFile(fileName);
+}
+
+TEST(FileTests, ReadLines) {
+  std::string fileName = pt::getResourcePath("test_file_1.txt");
+  File file = File::open(fileName, FileCreationMode::OPEN_ONLY,
+			 FileAccessMode::READ_ONLY);
+  std::vector<std::string> lines = file.readLines();
+
+  EXPECT_EQ(TEST_FILE_1_LINES, lines);
+}
+
+TEST(FileTests, ReadLineWithBufferDoubling) {
+  // Set the buffer size so that the buffer has to double several times
+  // to accomodate the first line, and can only contain part of the second
+  // line once it holds the first line.  This setup will test the second
+  // and third cases in File::Buffer::nextLine as well as fill() and
+  // doubleAndFill().
+  std::string fileName = pt::getResourcePath("test_file_1.txt");
+  File file = File::open(fileName, FileCreationMode::OPEN_ONLY,
+			 FileAccessMode::READ_ONLY, FileOpenOptions::NONE,
+			 FilePermissions::ALL_RW, 12, 96);
+  std::vector<std::string> lines = file.readLines();
+
+  EXPECT_EQ(TEST_FILE_1_LINES, lines);
+}
 

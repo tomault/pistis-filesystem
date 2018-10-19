@@ -97,15 +97,20 @@ namespace pistis {
       }
       static File open(const std::string& name,
 		       FileAccessMode access = FileAccessMode::READ_WRITE,
-		       FileOpenOptions options = FileOpenOptions::NONE) {
+		       FileOpenOptions options = FileOpenOptions::NONE,
+		       size_t initialBufferSize = INITIAL_BUFFER_SIZE,
+		       size_t maxBufferSize = MAX_BUFFER_SIZE) {
 	return File::open(name, FileCreationMode::CREATE_OR_OPEN, access,
-			  options, FilePermissions::ALL_RW);
+			  options, FilePermissions::ALL_RW,
+			  initialBufferSize, maxBufferSize);
       }
 
       static File open(const std::string& name, FileCreationMode creation,
 		       FileAccessMode access,
 		       FileOpenOptions options = FileOpenOptions::NONE,
-		       FilePermissions permissions = FilePermissions::ALL_RW);
+		       FilePermissions permissions = FilePermissions::ALL_RW,
+		       size_t initialBufferSize = INITIAL_BUFFER_SIZE,
+		       size_t maxBufferSize = MAX_BUFFER_SIZE);
       static void unlink(const std::string& name);
 
     private:
