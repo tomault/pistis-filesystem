@@ -208,11 +208,11 @@ TEST(FileTests, ReadLines) {
   EXPECT_EQ(TEST_FILE_1_LINES, lines);
 }
 
-TEST(FileTests, ReadLineWithBufferDoubling) {
+TEST(FileTests, ReadLinesWithBufferDoubling) {
   // Set the buffer size so that the buffer has to double several times
   // to accomodate the first line, and can only contain part of the second
   // line once it holds the first line.  This setup will test the second
-  // and third cases in File::Buffer::nextLine as well as fill() and
+  // and third cases in File::Buffer::nextLine() as well as fill() and
   // doubleAndFill().
   std::string fileName = pt::getResourcePath("test_file_1.txt");
   File file = File::open(fileName, FileCreationMode::OPEN_ONLY,
@@ -223,3 +223,167 @@ TEST(FileTests, ReadLineWithBufferDoubling) {
   EXPECT_EQ(TEST_FILE_1_LINES, lines);
 }
 
+TEST(FileTests, ReadLinesInPieces) {
+  // As ReadLineWithBufferDoubling, but set the max buffer size to be
+  // the same as the initial buffer size, so lines have to be read in
+  // pieces, covering the last case in File::Buffer::nextLine()
+  std::string fileName = pt::getResourcePath("test_file_1.txt");
+  File file = File::open(fileName, FileCreationMode::OPEN_ONLY,
+			 FileAccessMode::READ_ONLY, FileOpenOptions::NONE,
+			 FilePermissions::ALL_RW, 12, 12);
+  std::vector<std::string> lines = file.readLines();
+
+  EXPECT_EQ(TEST_FILE_1_LINES, lines);
+}
+
+TEST(FileTests, ReadLinesWithoutNewlineAtEnd) {
+  // Same as ReadLines, but read from a file whose last line does not end
+  // in a newline
+  std::string fileName = pt::getScratchFile("tmp_file_1.txt");
+  pt::removeFile(fileName);
+
+  File file = File::open(fileName, FileCreationMode::CREATE_ONLY,
+			 FileAccessMode::WRITE_ONLY);
+  size_t nWritten = file.write(TEST_FILE_1_CONTENT.c_str(),
+			       TEST_FILE_1_CONTENT.size() - 1);
+  file.close();
+
+  ASSERT_EQ(TEST_FILE_1_CONTENT.size() - 1, nWritten);
+
+  file = File::open(fileName, FileCreationMode::OPEN_ONLY,
+		    FileAccessMode::READ_ONLY);
+  std::vector<std::string> lines = file.readLines();
+  ASSERT_EQ(TEST_FILE_1_LINES.size(), lines.size());
+  for (int i = 0; i < lines.size() - 1; ++i) {
+    EXPECT_EQ(TEST_FILE_1_LINES[i], lines[i]);
+  }
+
+  std::string trueLastLine =
+      TEST_FILE_1_LINES.back().substr(0, TEST_FILE_1_LINES.back().size() - 1);
+  EXPECT_EQ(trueLastLine, lines.back());
+
+  pt::removeFile(fileName);
+}
+
+TEST(FileTests, ReadFollowedByReadLine) {
+  std::string fileName = pt::getResourcePath("test_file_1.txt");
+  File file = File::open(fileName, FileCreationMode::OPEN_ONLY,
+			 FileAccessMode::READ_ONLY);
+  std::unique_ptr<char[]> buffer(new char[16]);
+  size_t nRead = file.read(buffer.get(), 16);
+  
+  EXPECT_EQ(16, nRead);
+  EXPECT_EQ(TEST_FILE_1_CONTENT.substr(0, 16),
+	    std::string(buffer.get(), buffer.get() + 16));
+
+  std::string text;
+  file.eachLine([&text](const std::string& s) { text += s; });
+  EXPECT_EQ(TEST_FILE_1_CONTENT.substr(16), text);
+}
+
+TEST(FileTests, ReadLineFollowedByRead) {
+  std::string fileName = pt::getResourcePath("test_file_1.txt");
+  size_t fileSize = sizeOfFile(fileName);
+  File file = File::open(fileName, FileCreationMode::OPEN_ONLY,
+			 FileAccessMode::READ_ONLY);
+  std::string text = file.readLine();
+  EXPECT_EQ(TEST_FILE_1_LINES[0], text);
+
+  // Read should be served entirely from the buffer
+  std::unique_ptr<char[]> buffer(new char[fileSize]);
+  size_t nRead = file.read(buffer.get(), fileSize);
+
+  EXPECT_EQ(fileSize - text.size(), nRead);
+  EXPECT_EQ(TEST_FILE_1_CONTENT.substr(text.size()),
+	    std::string(buffer.get(), buffer.get() + nRead));
+
+  EXPECT_EQ("", file.readLine());
+}
+
+TEST(FileTests, ReadLineFollowedByReadWithSmallBuffer) {
+  std::string fileName = pt::getResourcePath("test_file_1.txt");
+  const size_t fileSize = sizeOfFile(fileName);
+  const size_t bufferSize =
+    TEST_FILE_1_LINES[0].size() + TEST_FILE_1_LINES[1].size() / 2;
+  File file = File::open(fileName, FileCreationMode::OPEN_ONLY,
+			 FileAccessMode::READ_ONLY, FileOpenOptions::NONE,
+			 FilePermissions::ALL_RW, bufferSize, bufferSize);
+  std::string text = file.readLine();
+  EXPECT_EQ(TEST_FILE_1_LINES[0], text);
+
+  // Only part of the read can be satisfied from the buffer.  The rest must
+  // be read from the file.
+  std::unique_ptr<char[]> buffer(new char[fileSize]);
+  size_t nRead = file.read(buffer.get(), fileSize);
+
+  EXPECT_EQ(fileSize - text.size(), nRead);
+  EXPECT_EQ(TEST_FILE_1_CONTENT.substr(text.size()),
+	    std::string(buffer.get(), buffer.get() + nRead));
+
+  EXPECT_EQ("", file.readLine());
+}
+
+TEST(FileTests, ReadLineFollowedByReadWithBufferEqualToFirstLineLength) {
+  std::string fileName = pt::getResourcePath("test_file_1.txt");
+  const size_t fileSize = sizeOfFile(fileName);
+  const size_t bufferSize = TEST_FILE_1_LINES[0].size();
+  File file = File::open(fileName, FileCreationMode::OPEN_ONLY,
+			 FileAccessMode::READ_ONLY, FileOpenOptions::NONE,
+			 FilePermissions::ALL_RW, bufferSize, bufferSize);
+  std::string text = file.readLine();
+  EXPECT_EQ(TEST_FILE_1_LINES[0], text);
+
+  // Only part of the read can be satisfied from the buffer.  The rest must
+  // be read from the file.
+  std::unique_ptr<char[]> buffer(new char[fileSize]);
+  size_t nRead = file.read(buffer.get(), fileSize);
+
+  EXPECT_EQ(fileSize - text.size(), nRead);
+  EXPECT_EQ(TEST_FILE_1_CONTENT.substr(text.size()),
+	    std::string(buffer.get(), buffer.get() + nRead));
+
+  EXPECT_EQ("", file.readLine());
+}
+
+TEST(FileTests, EachChunk) {
+  const std::string fileName = pt::getResourcePath("test_file_1.txt");
+  const size_t CHUNK_SIZE = 20;
+  File file = File::open(fileName, FileCreationMode::OPEN_ONLY,
+			 FileAccessMode::READ_ONLY, FileOpenOptions::NONE,
+			 FilePermissions::ALL_RW);
+  std::vector<std::string> chunks;
+  std::vector<std::string> truth;
+
+  std::cout << TEST_FILE_1_CONTENT.size() << std::endl;
+  
+  for (size_t i = 0; i < TEST_FILE_1_CONTENT.size(); i += CHUNK_SIZE) {
+    truth.push_back(TEST_FILE_1_CONTENT.substr(i, CHUNK_SIZE));
+  }
+
+  file.eachChunk(CHUNK_SIZE, [&chunks](uint8_t* buffer, size_t n) {
+      chunks.push_back(std::string(buffer, buffer + n));
+  });
+  
+  EXPECT_EQ(truth, chunks);
+}
+
+TEST(FileTests, Unlink) {
+  std::string fileName = pt::getScratchFile("temp_file_1.txt");
+
+  pt::removeFile("temp_file_1.txt");
+  File file = File::open(fileName, FileCreationMode::CREATE_ONLY,
+			 FileAccessMode::WRITE_ONLY);
+  size_t nWritten = file.write(TEST_FILE_1_CONTENT.c_str(),
+			       TEST_FILE_1_CONTENT.size());
+  file.close();
+
+  struct stat unused;
+  ASSERT_GE(stat(fileName.c_str(), &unused), 0);
+
+  File::unlink(fileName);
+
+  ASSERT_LT(stat(fileName.c_str(), &unused), 0);
+  EXPECT_EQ(ENOENT, errno);
+
+  EXPECT_THROW(File::unlink("no_such_file.txt"), IOError);
+}
