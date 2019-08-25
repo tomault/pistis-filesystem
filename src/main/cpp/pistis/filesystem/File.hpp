@@ -95,6 +95,7 @@ namespace pistis {
 	}
 	return *this;
       }
+
       static File open(const std::string& name,
 		       FileAccessMode access = FileAccessMode::READ_WRITE,
 		       FileOpenOptions options = FileOpenOptions::NONE,
